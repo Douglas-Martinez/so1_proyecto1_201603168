@@ -38,7 +38,8 @@ static int open_file_proc(struct inode *inode, struct file *file)
     return single_open(file, show_ram_data, NULL);
 }
 
-static struct file_operations fops = {
+static struct file_operations fops = 
+{
     .owner = THIS_MODULE,
     .open = open_file_proc,
     .release = single_release,
@@ -69,5 +70,5 @@ static void __exit ram_read_exit(void)
     printk(KERN_INFO "End RAM\n");
 }
 
-module_init(ram_read_init)
-module_exit(ram_read_exit)
+module_init(ram_read_init);
+module_exit(ram_read_exit);
