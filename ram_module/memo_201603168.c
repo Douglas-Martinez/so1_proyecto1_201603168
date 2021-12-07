@@ -20,10 +20,10 @@ static int show_ram_data(struct seq_file *m, void *v)
 
     si_meminfo(&si);
     int tot = (K(si.totalram)/1024) & __INT_MAX__;
-    int tmp = (K(si.totalram - si.freeram - si.bufferram - si.sharedram)/1024) & __INT_MAX__;
-    int con = tot - tmp;
+    int fre = (K(si.freeram + si.bufferram + si.sharedram)/1024) & __INT_MAX__;
+    int con = tot - fre;
 
-    seq_printf(m, "TOTAL RAM: %8d MB\nCONSUMIDA: %8d MB\nPct Consumo: %6d %%\n", tot, con, (con*100)/tot);
+    seq_printf(m, "{\"TOTAL\": %8d, \"CONSUMIDA\":%8d, \"PCT\":%6d}\n", tot, con, (con*100)/tot);
 
     return 0;
 }
@@ -58,7 +58,7 @@ static int __init ram_read_init(void)
         return -1;
     } else 
     {
-        printk(KERN_INFO "Start RAM - 'cat /proc/memo_201603168'\n");
+        printk(KERN_INFO "201603168\n");
     }
 
     return 0;
@@ -67,7 +67,7 @@ static int __init ram_read_init(void)
 static void __exit ram_read_exit(void)
 {
     remove_proc_entry("memo_201603168", NULL);
-    printk(KERN_INFO "End RAM\n");
+    printk(KERN_INFO "SISTEMAS OPERATIVOS 1\n");
 }
 
 module_init(ram_read_init);
