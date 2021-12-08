@@ -13,17 +13,49 @@ MODULE_AUTHOR("DOUGLAS MARTINEZ");
 MODULE_DESCRIPTION("CPU INFO MODULE");
 MODULE_VERSION("1.0.0");
 
+struct task_struct *task_list;
+
+struct list_head *lista_hijos;
+struct task_struct *hijo;
+
 static int show_cpu_data(struct seq_file *m, void *v)
 {
-    struct task_struct *task_list;
+    /*
+    size_t run_count = 0;
+    size_t sleep_count = 0;
+    size_t stop_count = 0;
+    size_t zombie_count = 0;
     size_t proc_count = 0;
+    */
 
-    for_each_process(task_list) {
-        seq_printf(m, "=> %s [%d]\n", task_list->comm, task_list->pid);
-        proc_count++;
+    seq_printf(m, "[\n");
+    for_each_process(task_list) 
+    {
+        seq_printf(m, "\t{\n");
+        seq_printf(m, "\t\t\"PID\": %d,\n", task_list->pid);
+        seq_printf(m, "\t\t\"NOMBRE\": \"%s\",\n", task_list->comm);
+        seq_printf(m, "\t\t\"USUARIO\": ??,\n");
+        seq_printf(m, "\t\t\"ESTADO\": %ld,\n", task_list->state);
+        seq_printf(m, "\t\t\"RAM\": ??,\n");
+        
+        seq_printf(m, "\t\t\"HIJOS\": [\n");
+        list_for_each(lista_hijos, &(task_list->children))
+        {
+            hijo = list_entry(lista_hijos, struct task_struct, sibling);
+            
+            seq_printf(m, "\t\t\t\"{\n");
+            seq_printf(m, "\t\t\t\t\"PID\": %d,\n", hijo->pid);
+            seq_printf(m, "\t\t\t\t\"NOMBRE\": \"%s\"\n", hijo->comm);
+            seq_printf(m, "\t\t\t\"},\n");
+        }
+        seq_printf(m, "\t\t]\n");
+        //proc_count++;
+
+        seq_printf(m, "\t},\n");
     }
-
-    seq_printf(m, "No. Procesos: %zu\n", proc_count);
+    seq_printf(m, "]\n");
+    
+    //seq_printf(m, "\nEn Ejecucion: %zu\nSuspendidos: zu\nDetenidos: %zu\nZombies: %zu\nNo. Procesos: %zu\n", run_count, stop_count, zombie_count, proc_count);
 
     return 0;
 }
