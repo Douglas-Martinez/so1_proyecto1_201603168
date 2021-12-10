@@ -53,10 +53,10 @@ static int show_cpu_data(struct seq_file *m, void *v)
         {
             hijo = list_entry(lista_hijos, struct task_struct, sibling);
             
-            seq_printf(m, "\t\t\t\"{\n");
+            seq_printf(m, "\t\t\t{\n");
             seq_printf(m, "\t\t\t\t\"PID\": %d,\n", hijo->pid);
             seq_printf(m, "\t\t\t\t\"NOMBRE\": \"%s\"\n", hijo->comm);
-            seq_printf(m, "\t\t\t\"},\n");
+            seq_printf(m, "\t\t\t},\n");
         }
         seq_printf(m, "\t\t]\n");
 
