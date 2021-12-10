@@ -19,11 +19,12 @@ static int show_ram_data(struct seq_file *m, void *v)
     #define K(x) ((x) << (PAGE_SHIFT - 10))
 
     si_meminfo(&si);
-    int tot = (K(si.totalram)/1024) & __INT_MAX__;
-    int fre = (K(si.freeram + si.bufferram + si.sharedram)/1024) & __INT_MAX__;
-    int con = tot - fre;
+    //int tot = (K(si.totalram)/1024) & __INT_MAX__;
+    //int fre = (K(si.freeram + si.bufferram + si.sharedram)/1024) & __INT_MAX__;
+    //int con = tot - fre;
 
-    seq_printf(m, "{\"TOTAL\": %8d, \"CONSUMIDA\":%8d, \"PCT\":%6d}\n", tot, con, (con*100)/tot);
+    //seq_printf(m, "{\"TOTAL\":%8d,\"CONSUMIDA\":%8d,\"PCT\":%6d}\n", tot, con, (con*100)/tot);
+    seq_printf(m, "{\"TOTAL\":%8lu,\"FREE\":%8lu,\"SHARED\":%8lu}", K(si.totalram), K(si.freeram), K(si.sharedram));
 
     return 0;
 }

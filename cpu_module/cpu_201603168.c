@@ -21,48 +21,69 @@ struct task_struct *task_list;
 struct list_head *lista_hijos;
 struct task_struct *hijo;
 
+int countCOMMA;
+int countCOMMA2;
+
 static int show_cpu_data(struct seq_file *m, void *v)
 {
     #define K(x) ((x) << (PAGE_SHIFT - 10))
     si_meminfo(&si);
 
-    seq_printf(m, "[\n");
+    seq_printf(m, "[");
+    
+    countCOMMA = 0;
     for_each_process(task_list) 
     {
         unsigned long rss;
         get_task_struct(task_list);
 
-        seq_printf(m, "\t{\n");
-        seq_printf(m, "\t\t\"PID\": %d,\n", task_list->pid);
-        seq_printf(m, "\t\t\"NOMBRE\": \"%s\",\n", task_list->comm);
-        seq_printf(m, "\t\t\"UID\": %d,\n", __kuid_val(task_list->real_cred->uid));
-        seq_printf(m, "\t\t\"ESTADO\": %ld,\n", task_list->state);
+        if(countCOMMA == 0)
+        {
+            seq_printf(m, "\t{");
+        } else 
+        {
+            seq_printf(m, ",\t{");
+        }
+        seq_printf(m, "\t\t\"PID\": %d,", task_list->pid);
+        seq_printf(m, "\t\t\"NOMBRE\": \"%s\",", task_list->comm);
+        seq_printf(m, "\t\t\"UID\": %d,", __kuid_val(task_list->real_cred->uid));
+        seq_printf(m, "\t\t\"ESTADO\": %ld,", task_list->state);
         if(task_list->mm)
         {
             rss = get_mm_rss(task_list->mm) << PAGE_SHIFT;
-            seq_printf(m, "\t\t\"RAM\": %lu,\n", (rss/1024)*100/K(si.totalram));
-            seq_printf(m, "\t\t\"RAM_BYTES\": %lu,\n", rss/1024);
+            seq_printf(m, "\t\t\"RAM\": %lu,", (rss/1024)*100/K(si.totalram));
+            seq_printf(m, "\t\t\"RAM_BYTES\": %lu,", rss/1024);
         } else
         {
-            seq_printf(m, "\t\t\"RAM\": -1,\n");
-            seq_printf(m, "\t\t\"RAM_BYTES\": -1,\n");
+            seq_printf(m, "\t\t\"RAM\":0,");
+            seq_printf(m, "\t\t\"RAM_BYTES\":0,");
         }
         
-        seq_printf(m, "\t\t\"HIJOS\": [\n");
+        seq_printf(m, "\t\t\"HIJOS\": [");
+        
+        countCOMMA2 = 0;
         list_for_each(lista_hijos, &(task_list->children))
         {
             hijo = list_entry(lista_hijos, struct task_struct, sibling);
+            if(countCOMMA2 == 0)
+            {
+                seq_printf(m, "\t\t\t{");
+            } else {
+                seq_printf(m, ",\t\t\t{");
+            }
             
-            seq_printf(m, "\t\t\t{\n");
-            seq_printf(m, "\t\t\t\t\"PID\": %d,\n", hijo->pid);
-            seq_printf(m, "\t\t\t\t\"NOMBRE\": \"%s\"\n", hijo->comm);
-            seq_printf(m, "\t\t\t},\n");
-        }
-        seq_printf(m, "\t\t]\n");
+            seq_printf(m, "\t\t\t\t\"PID\": %d,", hijo->pid);
+            seq_printf(m, "\t\t\t\t\"NOMBRE\": \"%s\"", hijo->comm);
+            seq_printf(m, "\t\t\t}");
 
-        seq_printf(m, "\t},\n");
+            countCOMMA2 ++;
+        }
+        seq_printf(m, "\t\t]");
+
+        seq_printf(m, "\t}");
+        countCOMMA++;
     }
-    seq_printf(m, "]\n");
+    seq_printf(m, "]");
     
     return 0;
 }

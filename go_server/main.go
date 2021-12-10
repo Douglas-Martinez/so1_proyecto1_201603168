@@ -8,23 +8,26 @@ import (
 	//"io/ioutil"
 	"strconv"
 	"os/exec"
+	"strings"
+	//"reflect"
 
 	"github.com/gorilla/mux"
 )
 
 type ram struct {
-	Total		int	`json:Total`
-	Consumida	int	`json:Consumida`
+	TOTAL		int	`json:TOTAL`
+	FREE		int	`json:FREE`
+	SHARED		int	`json:SHARED`
+	CACHED		int	`json:CACHED`
+	CONSUMIDA	int `json:CONSUMIDA`
 	PCT			int	`json:PCT`
 }
 
-/*
 type proc_hijo struct {
 	PID		int		`json:PID`
 	NOMBRE	string	`json:NOMBRE`
 }
-*/
-/*
+
 type proc struct {
 	PID		int			`json:PID`
 	NOMBRE	string		`json:NOMBRE`
@@ -34,7 +37,7 @@ type proc struct {
 	RAM_BYTES	int		`json:RAM_BYTES`
 	HIJOS	[]proc_hijo	`json:HIJOS`
 }
-*/
+
 
 func middlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc (
@@ -42,7 +45,7 @@ func middlewareCors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-			w.Header().Set("Access-Control-Allow-Headrs", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 			
 			next.ServeHTTP(w, req)
 		})
@@ -61,15 +64,47 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ramHandler(w http.ResponseWriter, r *http.Request) {
+	// Obtener datos del modulo
 	cmd := exec.Command("sh", "-c", "cat /proc/memo_201603168")
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Fatal("Exploto memo_201603168")
+		log.Println("Exploto memo_201603168")
+		log.Fatal(err)
 	}
 
 	var newRAM ram
 	json.Unmarshal(out, &newRAM)
+
+	// Calcular Cache
+	cmd = exec.Command("sh", "-c", "free | head --line=2 | tail --line=1 | awk '{print $6}'")
+	out2, err2 := cmd.CombinedOutput()
+
+	if err2 != nil {
+		log.Println("Exploto el comando de Buffers")
+		log.Fatal(err2)
+	}
+
+	buffer := string(out2[:])
+	iBuffer, err3 := strconv.Atoi(strings.Replace(buffer, "\n", "", -1))
+
+	if err3 != nil {
+		log.Println("Exploto la conversion a int")
+		log.Fatal(err3)
+	}
+
+	newRAM.CACHED = iBuffer
+
+	// Calcular porcentaje
+	newRAM.CONSUMIDA = (newRAM.TOTAL - newRAM.FREE - newRAM.CACHED) + newRAM.SHARED
+	newRAM.PCT = newRAM.CONSUMIDA * 100 / newRAM.TOTAL
+
+	// Convertir KB a MB
+	newRAM.TOTAL = (newRAM.TOTAL + newRAM.SHARED) / 1024
+	newRAM.FREE = newRAM.FREE / 1024
+	newRAM.SHARED = newRAM.SHARED / 1024
+	newRAM.CACHED = newRAM.CACHED / 1024
+	newRAM.CONSUMIDA = newRAM.CONSUMIDA / 1024
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(newRAM)
