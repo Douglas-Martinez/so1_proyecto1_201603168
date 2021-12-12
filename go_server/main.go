@@ -9,12 +9,11 @@ import (
 	"os/exec"
 	"strings"
 	"math"
-	//"reflect"
 
 	"github.com/gorilla/mux"
 )
 
-type ram struct {
+type infoRam struct {
 	TOTAL		int	`json:TOTAL`
 	FREE		int	`json:FREE`
 	SHARED		int	`json:SHARED`
@@ -38,6 +37,15 @@ type proc struct {
 	RAM		int			`json:RAM`
 	RAM_BYTES	int		`json:RAM_BYTES`
 	HIJOS	[]proc_hijo	`json:HIJOS`
+}
+
+type infoProcs struct {
+	EJECUCION 	int 	`json:EJECUCION`
+	SUSPENDIDOS int 	`json:SUSPENDIDOS`
+	DETENIDOS 	int 	`json:DETENIDOS`
+	ZOMBIE 		int 	`json:ZOMBIE`
+	TOTAL		int		`json:TOTAL`
+	PROCESOS 	[]proc	`json:PROCESOS`
 }
 
 type usuario struct {
@@ -118,7 +126,7 @@ func ramHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var newRAM ram
+	var newRAM infoRam
 	json.Unmarshal(out, &newRAM)
 
 	// Calcular Cache
@@ -126,7 +134,7 @@ func ramHandler(w http.ResponseWriter, r *http.Request) {
 	out2, err2 := cmd.CombinedOutput()
 
 	if err2 != nil {
-		log.Println("Exploto el comando de Buffers")
+		fmt.Println("Exploto el comando de Buffers")
 		log.Fatal(err2)
 	}
 
@@ -152,6 +160,7 @@ func ramHandler(w http.ResponseWriter, r *http.Request) {
 	newRAM.CONSUMIDA = newRAM.CONSUMIDA / 1024
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newRAM)
 }
 
@@ -165,24 +174,46 @@ func procHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	var newProcs []proc
-	json.Unmarshal(out, &newProcs)
+	var newProcs infoProcs
+	var auxLista []proc
+	json.Unmarshal(out, &auxLista)
+
+	newProcs.PROCESOS = auxLista
 
 	// Obtener usuarios y Contabilizar estados
-	//var numEjecucion 	int
-	//var numSuspendidos 	int
-	//var numDetenidos 	int
-	//var numZombie 		int
-	//totalProcesos := len(newProcs)
+	numEjecucion, numSuspendidos, numDetenidos, numZombie := 0, 0, 0, 0
+	totalProcesos := len(newProcs.PROCESOS)
 	
-	for i, proceso := range newProcs {
-		newProcs[i].UNAME = searchName(proceso.UID)
+	for i, proceso := range newProcs.PROCESOS {
+		newProcs.PROCESOS[i].UNAME = searchName(proceso.UID)
 
 		//Contabilizar los estados
-		
+		if proceso.ESTADO == 0 {
+			newProcs.PROCESOS[i].ENAME = "Running"
+			numEjecucion += 1
+
+		} else if proceso.ESTADO == 1 || proceso.ESTADO == 2 || proceso.ESTADO == 1026 {
+			newProcs.PROCESOS[i].ENAME = "Sleeping"
+			numSuspendidos += 1
+
+		} else if proceso.ESTADO == 4 || proceso.ESTADO == 128 {
+			newProcs.PROCESOS[i].ENAME = "Zombie"
+			numZombie += 1
+
+		} else if proceso.ESTADO == 8 {
+			newProcs.PROCESOS[i].ENAME = "Stopped"
+			numDetenidos += 1
+		}
 	}
 
+	newProcs.EJECUCION = numEjecucion
+	newProcs.SUSPENDIDOS = numSuspendidos
+	newProcs.DETENIDOS = numDetenidos
+	newProcs.ZOMBIE = numZombie
+	newProcs.TOTAL = totalProcesos
+
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newProcs)
 }
 
@@ -205,7 +236,42 @@ func procKillHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Devolver estado o mensaje para que el front entienda que la operacion fue exitosa
+	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Proceso eliminado correctamente")
+}
+
+func cpuHandler(w http.ResponseWriter, r *http.Request) {
+	// Obtener datos desde la consola de comandos
+	cmd := exec.Command("sh", "-c", "ps -eo pcpu | sort -k 1 -r | head -75 | tail -74")
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		fmt.Println("Exploto el comando %CPU")
+		log.Fatal(err)
+	}
+	
+	// Obtener datos individuales
+	tmp := strings.Split(string(out[:]), "\n")
+
+	contador := 0.0
+	for _, s := range tmp {
+		repString := strings.Replace(s," ", "", -1)
+
+		if repString != "" {
+			num, err := strconv.ParseFloat(repString, 64)
+
+			if err != nil {
+				fmt.Println("Exploto la conversion string - int")
+				log.Fatal(err)
+			}
+
+			contador += num
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, fmt.Sprintf("{\"CPU\":%.2f}", float64(contador/4)))
 }
 
 func main() {
@@ -214,6 +280,7 @@ func main() {
 
 	router.HandleFunc("/", rootHandler).Methods("GET")
 	router.HandleFunc("/ram", ramHandler).Methods("GET")
+	router.HandleFunc("/cpu", cpuHandler).Methods("GET")
 	router.HandleFunc("/proc", procHandler).Methods("GET")
 	router.HandleFunc("/proc/{id}", procKillHandler).Methods("DELETE")
 
