@@ -1,8 +1,12 @@
 import {BrowserRouter, Routes, Route} from 'react-router-dom'
 
-import Procesos from './components/Procesos';
-import Layout from './components/Layout';
 import './App.css';
+
+import Layout from './components/Layout';
+import Procesos from './components/Procesos';
+import Ram from './components/Ram';
+import Cpu from './components/Cpu';
+
 
 function App() {
   return (
@@ -11,6 +15,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Procesos />} />
           <Route path="/procesos" element={<Procesos />} />
+          <Route path="/ram-monitor" element={<Ram />} />
+          <Route path="/cpu-monitor" element={<Cpu />} />
         </Routes>
       </Layout>
     </BrowserRouter>
