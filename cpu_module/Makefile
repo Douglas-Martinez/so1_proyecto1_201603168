@@ -10,7 +10,6 @@ clean:
 
 up:
 	@echo "NOMBRE: DOUGLAS OMAR ARREOLA MARTINEZ"
-	@sudo dmesg -C
 	@sudo insmod cpu_201603168.ko
 
 down:

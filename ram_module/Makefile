@@ -10,7 +10,6 @@ clean:
 
 up:
 	@echo "CARNET: 201603168"
-	@sudo dmesg -C
 	@sudo insmod memo_201603168.ko
 
 down:
