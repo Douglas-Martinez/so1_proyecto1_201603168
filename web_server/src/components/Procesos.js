@@ -13,7 +13,7 @@ const Procesos = () => {
     useEffect(() => {
         setInterval(() => {
             setTemp((prevTemp) => prevTemp+1);
-        }, 20000);
+        }, 15000);
     }, []);
 
     useEffect(() => {

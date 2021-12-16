@@ -6,10 +6,22 @@ import { VictoryChart, VictoryArea, VictoryTheme } from 'victory';
 import API from '../services/api';
 
 const Cpu = () => {
-    const [cpuList, setCpuList] = useState([]);
-    const [cpu, setCpu] = useState({});
+    let init = {
+        x: 0,
+        y: 0
+    }
+
+    let cpuInit = {
+        TOTAL: 0,
+        CONSUMIDA: 0,
+        PCT: 0
+    }
+
+    const [cpuList, setCpuList] = useState([init]);
+    const [cpu, setCpu] = useState(cpuInit);
     const [loading, setLoad] = useState(true);
     const [temp, setTemp] = useState(0);
+    const [secs, setSecs] = useState(2);
 
     useEffect(() => {
         setInterval(() => {
@@ -19,13 +31,13 @@ const Cpu = () => {
 
     useEffect(() => {
         getCpu();
-        addList(); 
     }, [temp]);
 
     const getCpu = () => {
         API.get("/cpu")
             .then((res) => {
                 setCpu(res.data);
+                addList();
                 setLoad(false);
             })
             .catch(err => {
@@ -34,13 +46,16 @@ const Cpu = () => {
     };
 
     const addList = () => {
-        var today = new Date();
+        // var today = new Date();
+        // today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()
         if(cpu.CPU !== undefined) {
             setCpuList([...cpuList, {
-                x: today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds(),
+                x: secs,
                 y: cpu.CPU
             }]);
         }
+
+        setSecs(secs+2);
     }
 
     if(loading) {
@@ -74,7 +89,7 @@ const Cpu = () => {
                         theme={VictoryTheme.material}
                         width={700}
                         height={330}
-                        scale={{x: "time"}}
+                        domain={{ y: [0, 100]}}
                     >
                         <VictoryArea 
                             style={{ data: { fill: "#FF5936"}}}

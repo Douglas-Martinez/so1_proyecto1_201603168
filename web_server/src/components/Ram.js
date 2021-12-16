@@ -6,10 +6,20 @@ import { VictoryChart, VictoryArea, VictoryTheme } from 'victory';
 import API from '../services/api';
 
 const Ram = () => {
-    const [ramList, setRamList] = useState([]);
-    const [ram, setRam] = useState({});
+    let init = {
+        x: 0,
+        y: 0
+    }
+    let ramInit = {
+        TOTAL: 0,
+        CONSUMIDA: 0,
+        PCT: 0
+    }
+    const [ramList, setRamList] = useState([init]);
+    const [ram, setRam] = useState(ramInit);
     const [loading, setLoad] = useState(true);
     const [temp, setTemp] = useState(0);
+    const [secs, setSecs] = useState(2);
 
     useEffect(() => {
         setInterval(() => {
@@ -19,13 +29,13 @@ const Ram = () => {
 
     useEffect(() => {
         getRam();
-        addList();
     }, [temp]);
 
     const getRam = () => {
         API.get("/ram")
             .then((res) => {
                 setRam(res.data);
+                addList();
                 setLoad(false);
             })
             .catch(err => {
@@ -34,13 +44,16 @@ const Ram = () => {
     };
 
     const addList = () => {
-        var today = new Date();
+        // var today = new Date();
+        // today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()
         if(ram.PCT !== undefined) {
             setRamList([...ramList, {
-                x: today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds(),
+                x: secs,
                 y: ram.PCT
             }]);
         }
+
+        setSecs(secs+2);
     }
 
     if(loading) {
@@ -78,7 +91,7 @@ const Ram = () => {
                         theme={VictoryTheme.material}
                         width={700}
                         height={330}
-                        scale={{x: "time"}}
+                        domain={{ y: [0, 100]}}
                     >
                         <VictoryArea 
                             style={{ data: { fill: "#09AA"}}}
